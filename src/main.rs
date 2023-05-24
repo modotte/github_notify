@@ -1,7 +1,7 @@
 use daemonize::Daemonize;
 use notify_rust::Notification;
 use octocrab::Octocrab;
-use std::fs::File;
+use std::{fs::File, thread, time::Duration};
 
 #[tokio::main]
 async fn main() -> octocrab::Result<()> {
@@ -9,6 +9,8 @@ async fn main() -> octocrab::Result<()> {
     let octo = Octocrab::builder().personal_token(token).build()?;
 
     loop {
+        thread::sleep(Duration::from_secs(60 * 10));
+
         let current_rate_limit = octo.ratelimit().get().await?;
         if current_rate_limit.rate.remaining <= 2 {
             eprintln!("Cannot request more from Github API!");
