@@ -1,3 +1,4 @@
+use chrono::{DateTime, Local};
 use daemonize::Daemonize;
 use notify_rust::Notification;
 use octocrab::Octocrab;
@@ -10,6 +11,8 @@ async fn main() -> octocrab::Result<()> {
 
     loop {
         thread::sleep(Duration::from_secs(60 * 10));
+        let now: DateTime<Local> = Local::now();
+        println!("Querying Github API at {}", now);
 
         let current_rate_limit = octo.ratelimit().get().await?;
         if current_rate_limit.rate.remaining <= 2 {
