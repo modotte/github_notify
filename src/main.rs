@@ -1,8 +1,7 @@
 use chrono::{DateTime, Local};
-use daemonize::Daemonize;
 use notify_rust::Notification;
 use octocrab::Octocrab;
-use std::{fs::File, thread, time::Duration};
+use std::{thread, time::Duration};
 
 #[tokio::main]
 async fn main() -> octocrab::Result<()> {
@@ -29,6 +28,5 @@ async fn main() -> octocrab::Result<()> {
                 .show()
                 .expect("Failed to launch notification!");
         }
-        break Ok(());
     }
 }
