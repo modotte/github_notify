@@ -24,7 +24,7 @@ async fn main() -> octocrab::Result<()> {
             Notification::new()
                 .summary("New Github notification!")
                 .body(notification.items[0].reason.as_str())
-                .icon("github")
+                .icon("firefox")
                 .show()
                 .expect("Failed to launch notification!");
         }
