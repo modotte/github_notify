@@ -1,7 +1,7 @@
-use chrono::{DateTime, Local};
+use chrono::{Local, Utc};
 use octocrab::models::activity::Notification;
 use octocrab::{Octocrab, Page};
-use std::env::var;
+use std::env::{args, var};
 use std::{thread, time::Duration};
 
 fn notify_desktop(github_notification: &Page<Notification>) {
@@ -15,22 +15,39 @@ fn notify_desktop(github_notification: &Page<Notification>) {
     }
 }
 
+enum DateTimeFormat {
+    Utc,
+    Local,
+}
+
 #[tokio::main]
 async fn main() -> octocrab::Result<()> {
+    let args: Vec<String> = args().collect();
+    let mut datetime_format = DateTimeFormat::Local;
+    if args[0] == "utc" {
+        datetime_format = DateTimeFormat::Utc;
+    }
+
     let token = var("GITHUB_NOTIFY_KEY").expect("GITHUB_NOTIFY_KEY env variable is required");
     let octo = Octocrab::builder().personal_token(token).build()?;
 
     loop {
-        thread::sleep(Duration::from_secs(60 * 10));
-        let current_datetime: DateTime<Local> = Local::now();
+        let current_datetime = match datetime_format {
+            DateTimeFormat::Local => Local::now(),
+            DateTimeFormat::Utc => Utc::now().into(),
+        };
+
         println!("github_notify: Querying Github API at {}", current_datetime);
 
         let current_rate_limit = octo.ratelimit().get().await?;
-        if current_rate_limit.rate.remaining <= 2 {
+        let minimum_remaining_rate = 2;
+        if current_rate_limit.rate.remaining <= minimum_remaining_rate {
             eprintln!("github_notify: Cannot request more from Github API!");
         }
 
         let notification = octo.activity().notifications().list().send().await?;
         notify_desktop(&notification);
+
+        thread::sleep(Duration::from_secs(60 * 10));
     }
 }
