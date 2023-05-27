@@ -1,4 +1,4 @@
-use chrono::{Local, Utc};
+use chrono::{DateTime, Local, Utc};
 use octocrab::models::activity::Notification;
 use octocrab::{Octocrab, Page};
 use std::env::{args, var};
@@ -15,29 +15,28 @@ fn notify_desktop(github_notification: &Page<Notification>) {
     }
 }
 
-enum DateTimeFormat {
-    Utc,
-    Local,
-}
-
 #[tokio::main]
 async fn main() -> octocrab::Result<()> {
     let args: Vec<String> = args().collect();
-    let mut datetime_format = DateTimeFormat::Local;
-    if args[0] == "utc" {
-        datetime_format = DateTimeFormat::Utc;
+    let mut datetime_format = "";
+
+    if let Some(dtf) = args.get(1) {
+        datetime_format = dtf;
     }
 
-    let token = var("GITHUB_NOTIFY_KEY").expect("GITHUB_NOTIFY_KEY env variable is required");
-    let octo = Octocrab::builder().personal_token(token).build()?;
+    let github_api_key =
+        var("GITHUB_NOTIFY_KEY").expect("GITHUB_NOTIFY_KEY env variable is required");
+    let octo = Octocrab::builder().personal_token(github_api_key).build()?;
 
     loop {
-        let current_datetime = match datetime_format {
-            DateTimeFormat::Local => Local::now(),
-            DateTimeFormat::Utc => Utc::now().into(),
-        };
-
-        println!("github_notify: Querying Github API at {}", current_datetime);
+        println!(
+            "github_notify: Querying Github API at {}",
+            if datetime_format == "utc" {
+                Utc::now().to_string()
+            } else {
+                Local::now().to_string()
+            }
+        );
 
         let current_rate_limit = octo.ratelimit().get().await?;
         let minimum_remaining_rate = 2;
@@ -45,8 +44,8 @@ async fn main() -> octocrab::Result<()> {
             eprintln!("github_notify: Cannot request more from Github API!");
         }
 
-        let notification = octo.activity().notifications().list().send().await?;
-        notify_desktop(&notification);
+        let github_notification = octo.activity().notifications().list().send().await?;
+        notify_desktop(&github_notification);
 
         thread::sleep(Duration::from_secs(60 * 10));
     }
